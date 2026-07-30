@@ -199,7 +199,7 @@ edge_from_cursor(struct seat *seat, struct output **dest_output,
 	*edge1 = LAB_EDGE_NONE;
 	*edge2 = LAB_EDGE_NONE;
 
-	if (!view_is_floating(server.grabbed_view)) {
+	if (!server.grabbed_view || !view_is_floating(server.grabbed_view)) {
 		return false;
 	}
 
@@ -326,8 +326,39 @@ interactive_finish(struct view *view)
 	}
 
 	if (server.input_mode == LAB_INPUT_STATE_MOVE) {
-		if (!snap_to_region(view)) {
-			snap_to_edge(view);
+		bool snapped = snap_to_region(view);
+		if (!snapped) {
+			snapped = snap_to_edge(view);
+		}
+		if (!snapped && !wl_list_empty(&view->tile_link)) {
+			/* Moved away from snap position — remove from tile list */
+			view_set_untiled(view);
+			wl_list_remove(&view->tile_link);
+			wl_list_init(&view->tile_link);
+			view->tile_col = TILE_POS_NONE;
+			view->tile_row = TILE_POS_NONE;
+		}
+	} else if (server.input_mode == LAB_INPUT_STATE_RESIZE) {
+		view_adjust_neighbors(view);
+		/* Restore tiled appearance for decorations */
+		if (view->tile_col != TILE_POS_NONE
+				|| view->tile_row != TILE_POS_NONE) {
+			enum lab_edge edge = LAB_EDGE_NONE;
+			if (view->tile_col == TILE_POS_LEFT_OR_TOP) {
+				edge |= LAB_EDGE_LEFT;
+			} else if (view->tile_col
+					== TILE_POS_RIGHT_OR_BOTTOM) {
+				edge |= LAB_EDGE_RIGHT;
+			}
+			if (view->tile_row == TILE_POS_LEFT_OR_TOP) {
+				edge |= LAB_EDGE_TOP;
+			} else if (view->tile_row
+					== TILE_POS_RIGHT_OR_BOTTOM) {
+				edge |= LAB_EDGE_BOTTOM;
+			}
+			if (edge != LAB_EDGE_NONE && edge != view->tiled) {
+				view->tiled = edge;
+			}
 		}
 	}
 
