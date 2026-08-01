@@ -401,18 +401,24 @@ static struct view *
 find_opposite_tiled_view(struct view *view, struct output *output,
 		const struct wlr_box *usable, bool horizontal, bool find_in_first_half)
 {
+	/*
+	 * The overlay preview calls this with view == NULL. Fall back to
+	 * the grabbed view so that the workspace filter still applies and
+	 * the window being dragged is excluded from the search.
+	 */
+	struct view *ref_view = view ? view : server.grabbed_view;
 	struct view *best = NULL;
 	struct view *neighbor;
 
 	wl_list_for_each(neighbor, &server.tiled_views, tile_link) {
-		if (neighbor == view || !neighbor->output
+		if (neighbor == ref_view || !neighbor->output
 				|| !output_is_usable(neighbor->output)) {
 			continue;
 		}
 		if (neighbor->output != output) {
 			continue;
 		}
-		if (view && neighbor->workspace != view->workspace) {
+		if (ref_view && neighbor->workspace != ref_view->workspace) {
 			continue;
 		}
 
