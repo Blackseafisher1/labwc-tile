@@ -602,6 +602,18 @@ view_get_edge_snap_box(struct view *view, struct output *output,
 	if (dst.y + dst.height > usable.y + usable.height) {
 		dst.height = usable.y + usable.height - dst.y;
 	}
+	/*
+	 * If the box is still fully outside the usable area, pin it back
+	 * inside so the overlay is never drawn off-screen.
+	 */
+	if (dst.x + dst.width <= usable.x || dst.x >= usable.x + usable.width) {
+		dst.x = usable.x;
+		dst.width = usable.width;
+	}
+	if (dst.y + dst.height <= usable.y || dst.y >= usable.y + usable.height) {
+		dst.y = usable.y;
+		dst.height = usable.height;
+	}
 
 	/* Ensure non-negative dimensions for overlay scene rect */
 	dst.width = MAX(1, dst.width);
@@ -790,7 +802,7 @@ view_move_relative(struct view *view, int x, int y)
 	}
 	view_maximize(view, VIEW_AXIS_NONE);
 	if (view_is_tiled(view)) {
-		view_set_untiled(view);
+		view_untile_managed(view);
 		view_move_resize(view, view->natural_geometry);
 	}
 	view_move(view, view->pending.x + x, view->pending.y + y);
@@ -2312,6 +2324,11 @@ view_adjust_neighbors(struct view *view)
 
 	const enum lab_edge edges = server.resize_edges;
 	if (edges == LAB_EDGE_NONE) {
+		return;
+	}
+	/* Only managed tiles are part of a layout that can be adjusted */
+	if (view->tile_col == TILE_COL_NONE
+			&& view->tile_row == TILE_ROW_NONE) {
 		return;
 	}
 
