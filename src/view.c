@@ -499,11 +499,42 @@ view_get_edge_snap_box(struct view *view, struct output *output,
 					- neighbor_border.left - usable.x;
 			}
 		} else {
-			if (edge & LAB_EDGE_RIGHT) {
-				x1 = (usable.width + rc.gap) / 2;
-			}
-			if (edge & LAB_EDGE_LEFT) {
-				x2 = (usable.width - rc.gap) / 2;
+			/*
+			 * Corner snap with an empty opposite column: match the
+			 * width of a window stacked in the same column, e.g.
+			 * snapping B below A in "empty | A" gives B the width
+			 * of A instead of a 50/50 split.
+			 */
+			struct view *same_half_view = (rc.resize_adjust_tiled_neighbors
+					&& edge & (LAB_EDGE_TOP | LAB_EDGE_BOTTOM))
+				? find_opposite_tiled_view(view, output, &usable,
+					true, !(edge & LAB_EDGE_RIGHT)) : NULL;
+
+			if (same_half_view) {
+				/*
+				 * The snap box is the outer geometry while the
+				 * width of same_half_view excludes its own SSD
+				 * margin, so extend the outer width by the
+				 * margin which is subtracted below.
+				 */
+				struct border margin = view
+					? ssd_get_margin(view->ssd) : (struct border){ 0 };
+				if (edge & LAB_EDGE_RIGHT) {
+					x2 = usable.width - rc.gap;
+					x1 = x2 - same_half_view->pending.width
+						- margin.left - margin.right;
+				} else {
+					x1 = rc.gap;
+					x2 = x1 + same_half_view->pending.width
+						+ margin.left + margin.right;
+				}
+			} else {
+				if (edge & LAB_EDGE_RIGHT) {
+					x1 = (usable.width + rc.gap) / 2;
+				}
+				if (edge & LAB_EDGE_LEFT) {
+					x2 = (usable.width - rc.gap) / 2;
+				}
 			}
 		}
 	}
@@ -2177,6 +2208,10 @@ adjust_horizontal_neighbor(struct view *view, struct view *neighbor,
 	if (view->tile_col == TILE_COL_NONE) {
 		return false;
 	}
+	/* Full-width windows span both columns and keep their width */
+	if (neighbor->tile_col == TILE_COL_NONE) {
+		return false;
+	}
 
 	/* Neighbor to the right */
 	if ((edges & LAB_EDGE_RIGHT)
@@ -2214,6 +2249,10 @@ adjust_vertical_neighbor(struct view *view, struct view *neighbor,
 	bool changed = false;
 
 	if (view->tile_row == TILE_ROW_NONE) {
+		return false;
+	}
+	/* Full-height windows span both rows and keep their height */
+	if (neighbor->tile_row == TILE_ROW_NONE) {
 		return false;
 	}
 
