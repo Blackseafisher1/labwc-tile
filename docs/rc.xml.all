@@ -180,6 +180,11 @@
     <cornerRange>50</cornerRange>
     <overlay enabled="yes">
       <delay inner="500" outer="500" />
+      <!--
+        Draw the snap overlay above all windows instead of below the
+        window being dragged.
+        <alwaysOnTop>yes</alwaysOnTop>
+      -->
     </overlay>
     <topMaximize>yes</topMaximize>
     <notifyClient>always</notifyClient>
