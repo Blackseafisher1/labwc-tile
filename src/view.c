@@ -428,6 +428,13 @@ view_get_edge_snap_box(struct view *view, struct output *output,
 	};
 
 	if (view) {
+		/*
+		 * x1/x2 and y1/y2 are the outer (visible) bounds. Shrink this
+		 * box to the inner geometry that view->pending expects: move
+		 * x/y inwards by the left/top margin and reduce width/height
+		 * by the side margins. ssd_get_margin() returns the same
+		 * values as ssd_thickness(), cached on the ssd.
+		 */
 		struct border margin = ssd_get_margin(view->ssd);
 		dst.x += margin.left;
 		dst.y += margin.top;

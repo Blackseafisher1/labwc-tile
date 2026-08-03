@@ -20,6 +20,15 @@
 #include "theme.h"
 #include "view.h"
 
+/*
+ * SSD extents rendered outside the view's inner (content) geometry.
+ * Left/right/bottom are theme->border_width; top additionally includes
+ * the titlebar height when visible. CSD and fullscreen views return a
+ * zero border, so their inner geometry equals their visible box.
+ *
+ * The view is only inspected to determine whether it draws an SSD and
+ * which parts; the pixel sizes come from the global theme (rc.theme).
+ */
 struct border
 ssd_thickness(struct view *view)
 {

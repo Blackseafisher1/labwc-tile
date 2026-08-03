@@ -211,6 +211,13 @@ struct view {
 	 * Geometry of the wlr_surface contained within the view, as
 	 * currently displayed. Should be kept in sync with the
 	 * scene-graph at all times.
+	 *
+	 * This is the inner (content) box, without the SSD extents. The
+	 * SSD is drawn around it, so the visible window box is this box
+	 * expanded on each side by the matching component of
+	 * ssd_thickness(), e.g. visible width = width + left + right.
+	 * For CSD views ssd_thickness() is zero, so the inner and visible
+	 * boxes are identical. See ssd_thickness() in src/ssd/ssd.c.
 	 */
 	struct wlr_box current;
 	/*
